@@ -4,7 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport"
         content="width=device-width, initial-scale=1">
-  <title>Bonus Découverte — Démonstration</title>
+  <title>Bonus Découverte — Test publicitaire</title>
+
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://libtl.com/sdk.js"
+          data-zone="12322374"
+          data-sdk="show_12322374"></script>
+
   <style>
     body {
       margin: 0;
@@ -39,6 +45,10 @@
       font-size: 16px;
       cursor: pointer;
     }
+    button:disabled {
+      opacity: 0.6;
+      cursor: wait;
+    }
     #message {
       min-height: 60px;
       margin-top: 20px;
@@ -51,25 +61,31 @@
     }
   </style>
 </head>
-  <script src='//libtl.com/sdk.js' data-zone='12322374' data-sdk='show_12322374'></script>
+
 <body>
   <main>
     <h1>Bonus Découverte</h1>
 
     <p class="notice">
-      Mode démonstration : aucune publicité réelle.
-      Les points n'ont aucune valeur monétaire.
+      Test avec publicités réelles possibles.
+      Les points de test n'ont aucune valeur monétaire.
       Aucun retrait disponible.
     </p>
 
-    <p>Teste les boutons de notre future application.</p>
+    <p>
+      Tu peux choisir de regarder une publicité.
+      Un point de test est ajouté uniquement si le SDK
+      signale un événement récompensable.
+      Aucun achat ni clic sur une offre n'est demandé
+      par cette application.
+    </p>
 
-    <button id="test" type="button">
-      Tester une récompense fictive
+    <button id="watch" type="button">
+      Regarder une publicité — point de test
     </button>
 
     <button id="balance" type="button">
-      Mes points de démonstration
+      Mes points de test
     </button>
 
     <button id="rules" type="button">
@@ -77,38 +93,93 @@
     </button>
 
     <p id="message" role="status" aria-live="polite">
-      Bienvenue ! Tu peux commencer le test.
+      Bienvenue ! Ouvre cette page depuis le bot Telegram.
     </p>
 
     <small>
-      Les points sont temporaires :
-      ils sont remis à zéro si tu recharges la page.
-      Aucun paiement n'est demandé.
+      Les points sont temporaires et disparaissent
+      au rechargement. Aucun paiement n'est demandé.
+      Ce prototype ne propose pas de récompense en argent.
     </small>
   </main>
 
   <script>
     let points = 0;
-    const message = document.getElementById("message");
+    let busy = false;
 
-    document.getElementById("test").onclick = () => {
-      points += 1;
+    const message = document.getElementById("message");
+    const watchButton = document.getElementById("watch");
+
+    if (window.Telegram && window.Telegram.WebApp) {
+      window.Telegram.WebApp.ready();
+    }
+
+    watchButton.onclick = async () => {
+      if (busy) return;
+
+      if (typeof window.show_12322374 !== "function") {
+        message.textContent =
+          "Le module publicitaire n'est pas disponible. " +
+          "Vérifie ta connexion et réessaie plus tard. " +
+          "Aucun point ajouté.";
+        return;
+      }
+
+      busy = true;
+      watchButton.disabled = true;
+      watchButton.textContent = "Publicité en cours…";
       message.textContent =
-        "Test réussi : +1 point fictif. Total : " +
-        points + ". Aucune publicité n'a été diffusée.";
+        "Chargement de la publicité. Elle peut être indisponible.";
+
+      const eventId =
+        window.crypto &&
+        typeof window.crypto.randomUUID === "function"
+          ? window.crypto.randomUUID()
+          : "test-" + Date.now() + "-" +
+            Math.random().toString(36).slice(2);
+
+      try {
+        const result = await window.show_12322374({
+          ymid: eventId
+        });
+
+        if (result &&
+            result.reward_event_type === "valued") {
+          points += 1;
+          message.textContent =
+            "Événement récompensable signalé par le SDK : " +
+            "+1 point de test. Total : " + points +
+            ". Ce point n'est pas convertible en argent.";
+        } else {
+          message.textContent =
+            "Publicité terminée ou fermée, mais aucun événement " +
+            "récompensable n'a été signalé. Aucun point ajouté.";
+        }
+      } catch (error) {
+        message.textContent =
+          "La publicité est indisponible ou n'a pas pu être affichée. " +
+          "Aucun point ajouté. Réessaie plus tard.";
+      } finally {
+        busy = false;
+        watchButton.disabled = false;
+        watchButton.textContent =
+          "Regarder une publicité — point de test";
+      }
     };
 
     document.getElementById("balance").onclick = () => {
       message.textContent =
         "Ton solde temporaire : " + points +
-        " point(s) de démonstration, non convertibles en argent.";
+        " point(s) de test, non convertibles en argent.";
     };
 
     document.getElementById("rules").onclick = () => {
       message.textContent =
-        "Prototype de test uniquement. Aucune publicité réelle, " +
-        "aucun revenu, aucun retrait et aucun gain garanti. " +
-        "Les points disparaissent au rechargement de la page.";
+        "Prototype avec publicités réelles possibles. " +
+        "Participation facultative. Points locaux sans valeur monétaire, " +
+        "effacés au rechargement. Aucun retrait ni gain garanti. " +
+        "Ne clique pas sur les annonces dans le seul but " +
+        "de générer des revenus.";
     };
   </script>
 </body>
