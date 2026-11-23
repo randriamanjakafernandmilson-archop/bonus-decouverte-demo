@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <title>Bonus Découverte — Diagnostic 2</title>
+  <title>Bonus Découverte — Diagnostic 3</title>
+
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
   <script
     src="https://libtl.com/sdk.js"
@@ -29,7 +29,7 @@
     }
 
     main {
-      max-width: 520px;
+      max-width: 540px;
       margin: 0 auto;
       padding: 24px;
       background: #ffffff;
@@ -44,6 +44,7 @@
 
     .version {
       display: inline-block;
+      margin-top: 0;
       padding: 6px 10px;
       background: #e8eefc;
       border-radius: 8px;
@@ -83,12 +84,21 @@
       cursor: not-allowed;
     }
 
-    #message {
+    #message,
+    #telegram-status {
       padding: 14px;
-      background: #eef2f7;
       border-radius: 10px;
       white-space: pre-wrap;
       overflow-wrap: anywhere;
+    }
+
+    #message {
+      background: #eef2f7;
+    }
+
+    #telegram-status {
+      background: #e8eefc;
+      font-size: 14px;
     }
 
     footer {
@@ -103,7 +113,7 @@
   <main>
     <h1>Bonus Découverte</h1>
 
-    <p class="version">Version diagnostic 2</p>
+    <p class="version">Version diagnostic 3</p>
 
     <p class="notice">
       Test avec publicités réelles possibles.
@@ -112,10 +122,15 @@
     </p>
 
     <p>
-      La participation est facultative. Aucun achat, téléchargement
-      ni clic sur une offre n'est demandé par cette application.
-      Ne clique pas sur les annonces dans le seul but de générer
-      des revenus.
+      La participation est facultative.
+      Aucun achat, téléchargement ni clic sur une offre
+      n'est demandé par cette application.
+      Ne clique pas sur les annonces dans le seul but
+      de générer des revenus.
+    </p>
+
+    <p id="telegram-status" role="status" aria-live="polite">
+      Diagnostic Telegram : vérification en cours…
     </p>
 
     <div class="buttons">
@@ -133,14 +148,15 @@
     </div>
 
     <p id="message" role="status" aria-live="polite">
-      Version diagnostic 2 — Bienvenue !
-      Pour vérifier cette version sans publicité,
-      appuie sur « Mes points de test ».
+      Version diagnostic 3 — Bienvenue !
+      Tu peux vérifier cette version avec « Mes points de test »,
+      sans lancer de publicité.
     </p>
 
     <footer>
-      Les points sont temporaires et disparaissent au rechargement.
-      Aucun paiement n'est demandé.
+      Les points affichés ici sont temporaires et disparaissent
+      au rechargement. Ils ne sont pas synchronisés avec le
+      registre serveur D1. Aucun paiement n'est demandé.
       Ce prototype ne propose pas de récompense en argent.
     </footer>
   </main>
@@ -151,10 +167,46 @@
     let points = 0;
     let busy = false;
 
+    const VERSION = "Version diagnostic 3";
+
     const watchButton = document.getElementById("watch");
     const balanceButton = document.getElementById("balance");
     const rulesButton = document.getElementById("rules");
     const message = document.getElementById("message");
+    const telegramStatus =
+      document.getElementById("telegram-status");
+
+    function checkTelegram() {
+      const telegram = window.Telegram?.WebApp;
+
+      if (!telegram) {
+        telegramStatus.textContent =
+          "Diagnostic Telegram : script indisponible.";
+        return;
+      }
+
+      if (
+        typeof telegram.initData !== "string" ||
+        telegram.initData.length === 0
+      ) {
+        telegramStatus.textContent =
+          "Diagnostic Telegram : aucune donnée de session reçue. " +
+          "Ouvre cette page avec « Ouvrir la démo » " +
+          "dans le bot Telegram.";
+        return;
+      }
+
+      telegramStatus.textContent =
+        "Diagnostic Telegram : données de session présentes. " +
+        "Validation serveur pas encore effectuée.";
+
+      try {
+        telegram.ready();
+      } catch {
+        telegramStatus.textContent +=
+          " Le signal ready() n'a pas pu être envoyé.";
+      }
+    }
 
     function createEventId() {
       if (
@@ -190,8 +242,10 @@
       }
 
       try {
-        const text = JSON.stringify(value);
-        return text === undefined ? String(value) : text;
+        const serialized = JSON.stringify(value);
+        return serialized === undefined
+          ? String(value)
+          : serialized;
       } catch {
         return String(value);
       }
@@ -204,7 +258,7 @@
 
       if (typeof window.show_12322374 !== "function") {
         message.textContent =
-          "Version diagnostic 2 — Le SDK publicitaire " +
+          VERSION + " — Le SDK publicitaire " +
           "n'est pas disponible sur cette page. " +
           "Aucun point ajouté.";
         return;
@@ -217,7 +271,7 @@
       const eventId = createEventId();
 
       message.textContent =
-        "Version diagnostic 2 — Demande transmise au SDK.\n" +
+        VERSION + " — Demande transmise au SDK.\n" +
         "Identifiant du test : " + eventId;
 
       try {
@@ -225,36 +279,51 @@
           ymid: eventId
         });
 
-        if (
-          result &&
-          typeof result === "object" &&
-          result.reward_event_type === "valued"
-        ) {
+        const isObject =
+          result !== null &&
+          typeof result === "object";
+
+        const isValuedImpression =
+          isObject &&
+          result.event_type === "impression" &&
+          result.reward_event_type === "valued";
+
+        if (isValuedImpression) {
           points += 1;
 
           message.textContent =
-            "Version diagnostic 2 — " +
-            "Événement récompensable signalé par le SDK : " +
-            "+1 point de test.\n" +
-            "Total : " + points + ".\n" +
+            VERSION + " — Impression récompensable " +
+            "signalée par le SDK : +1 point local de test.\n" +
+            "Total temporaire : " + points + ".\n" +
             "Ce point n'est pas convertible en argent.\n" +
-            "La réception du postback serveur " +
-            "n'est pas vérifiée par cette page.\n" +
-            "Identifiant du test : " + eventId;
+            "Le registre serveur D1 n'est pas consulté " +
+            "par cette page.\n" +
+            "Identifiant envoyé : " + eventId;
         } else {
           message.textContent =
-            "Version diagnostic 2 — Diagnostic SDK : " +
-            describe(result) + "\n" +
-            "Aucun point ajouté.\n" +
-            "La réception du postback serveur " +
-            "n'est pas vérifiée par cette page.\n" +
-            "Identifiant du test : " + eventId;
+            VERSION + " — Aucune impression valued " +
+            "identifiée dans le résultat du SDK.\n" +
+            "Aucun point local ajouté.\n" +
+            "Identifiant envoyé : " + eventId;
+        }
+
+        if (isObject) {
+          message.textContent +=
+            "\nType d'événement : " +
+            describe(result.event_type) +
+            "\nType de récompense : " +
+            describe(result.reward_event_type) +
+            "\nIdentifiant renvoyé dans variable2 : " +
+            describe(result.variable2);
+        } else {
+          message.textContent +=
+            "\nDiagnostic SDK : " + describe(result);
         }
       } catch (error) {
         message.textContent =
-          "Version diagnostic 2 — Erreur SDK : " +
+          VERSION + " — Erreur SDK : " +
           describe(error) + "\n" +
-          "Aucun point ajouté.\n" +
+          "Aucun point local ajouté.\n" +
           "Identifiant du test : " + eventId;
       } finally {
         busy = false;
@@ -266,14 +335,18 @@
 
     balanceButton.onclick = () => {
       message.textContent =
-        "Version diagnostic 2 — Ton solde temporaire : " +
-        points +
-        " point(s) de test, non convertibles en argent.";
+        VERSION + " — Ton solde temporaire : " +
+        points + " point(s) de test, " +
+        "non convertibles en argent.\n" +
+        "Ce compteur est local à la page et disparaît " +
+        "au rechargement.\n" +
+        "Les points enregistrés dans D1 ne sont pas " +
+        "encore affichés ici.";
     };
 
     rulesButton.onclick = () => {
       message.textContent =
-        "Version diagnostic 2 — Conditions du test\n\n" +
+        VERSION + " — Conditions du test\n\n" +
         "Participation facultative.\n" +
         "Publicités réelles possibles.\n" +
         "Points locaux sans valeur monétaire, " +
@@ -283,9 +356,13 @@
         "n'est demandé par cette application.\n" +
         "Ne clique pas sur les annonces dans le seul but " +
         "de générer des revenus.\n\n" +
-        "Cette page ne consulte pas la base D1 " +
-        "et ne confirme pas la réception des postbacks.";
+        "Cette page ne consulte pas le registre D1.\n" +
+        "Les données de session Telegram ne sont pas " +
+        "encore validées côté serveur par cette page.\n" +
+        "Le diagnostic n'affiche pas leur contenu.";
     };
+
+    checkTelegram();
   </script>
 </body>
 </html>
