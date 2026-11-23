@@ -4,15 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <title>Bonus Découverte — Diagnostic 3</title>
+  <title>Bonus Découverte — Diagnostic 4</title>
 
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-
-  <script
-    src="https://libtl.com/sdk.js"
-    data-zone="12322374"
-    data-sdk="show_12322374">
-  </script>
 
   <style>
     * {
@@ -113,20 +107,18 @@
   <main>
     <h1>Bonus Découverte</h1>
 
-    <p class="version">Version diagnostic 3</p>
+    <p class="version">Version diagnostic 4</p>
 
     <p class="notice">
-      Test avec publicités réelles possibles.
+      Vérification de session Telegram uniquement.
+      Les publicités sont désactivées dans cette version.
       Les points de test n'ont aucune valeur monétaire.
       Aucun retrait disponible.
     </p>
 
     <p>
-      La participation est facultative.
-      Aucun achat, téléchargement ni clic sur une offre
-      n'est demandé par cette application.
-      Ne clique pas sur les annonces dans le seul but
-      de générer des revenus.
+      Aucun achat, téléchargement ou clic publicitaire
+      n'est nécessaire pour ce contrôle.
     </p>
 
     <p id="telegram-status" role="status" aria-live="polite">
@@ -134,8 +126,12 @@
     </p>
 
     <div class="buttons">
-      <button id="watch" type="button">
-        Regarder une publicité — point de test
+      <button id="verify" type="button">
+        Vérifier ma session Telegram
+      </button>
+
+      <button type="button" disabled>
+        Publicités désactivées pendant ce diagnostic
       </button>
 
       <button id="balance" class="secondary" type="button">
@@ -148,40 +144,50 @@
     </div>
 
     <p id="message" role="status" aria-live="polite">
-      Version diagnostic 3 — Bienvenue !
-      Tu peux vérifier cette version avec « Mes points de test »,
-      sans lancer de publicité.
+      Version diagnostic 4 — Bienvenue !
+      Cette page vérifie la session auprès du serveur.
+      Aucun point n'est ajouté pendant ce contrôle.
     </p>
 
     <footer>
-      Les points affichés ici sont temporaires et disparaissent
-      au rechargement. Ils ne sont pas synchronisés avec le
-      registre serveur D1. Aucun paiement n'est demandé.
-      Ce prototype ne propose pas de récompense en argent.
+      Cette version ne lit pas encore le solde D1.
+      Aucun paiement n'est demandé.
+      Aucun gain ni retrait n'est proposé.
+      Les données de session et les secrets ne sont pas affichés.
     </footer>
   </main>
 
   <script>
     "use strict";
 
-    let points = 0;
-    let busy = false;
+    const VERSION = "Version diagnostic 4";
 
-    const VERSION = "Version diagnostic 3";
+    const AUTH_URL =
+      "https://bonus-decouverte-api.randriamanjakafernandmilson.workers.dev/auth/telegram";
 
-    const watchButton = document.getElementById("watch");
+    const verifyButton = document.getElementById("verify");
     const balanceButton = document.getElementById("balance");
     const rulesButton = document.getElementById("rules");
     const message = document.getElementById("message");
     const telegramStatus =
       document.getElementById("telegram-status");
 
-    function checkTelegram() {
+    let busy = false;
+    let sessionValidated = false;
+
+    async function verifyTelegramSession() {
+      if (busy) {
+        return;
+      }
+
+      sessionValidated = false;
+
       const telegram = window.Telegram?.WebApp;
 
       if (!telegram) {
         telegramStatus.textContent =
-          "Diagnostic Telegram : script indisponible.";
+          "Diagnostic Telegram : script indisponible. " +
+          "Ferme puis rouvre la Mini App depuis le bot.";
         return;
       }
 
@@ -196,173 +202,154 @@
         return;
       }
 
-      telegramStatus.textContent =
-        "Diagnostic Telegram : données de session présentes. " +
-        "Validation serveur pas encore effectuée.";
-
       try {
         telegram.ready();
       } catch {
-        telegramStatus.textContent +=
-          " Le signal ready() n'a pas pu être envoyé.";
-      }
-    }
-
-    function createEventId() {
-      if (
-        window.crypto &&
-        typeof window.crypto.randomUUID === "function"
-      ) {
-        return window.crypto.randomUUID();
-      }
-
-      return (
-        "test-" +
-        Date.now().toString(36) +
-        "-" +
-        Math.random().toString(36).slice(2)
-      );
-    }
-
-    function describe(value) {
-      if (value === undefined) {
-        return "aucune donnée reçue (undefined)";
-      }
-
-      if (value === null) {
-        return "null";
-      }
-
-      if (value instanceof Error) {
-        return value.name + " : " + value.message;
-      }
-
-      if (typeof value === "string") {
-        return value || "texte vide";
-      }
-
-      try {
-        const serialized = JSON.stringify(value);
-        return serialized === undefined
-          ? String(value)
-          : serialized;
-      } catch {
-        return String(value);
-      }
-    }
-
-    watchButton.onclick = async () => {
-      if (busy) {
-        return;
-      }
-
-      if (typeof window.show_12322374 !== "function") {
-        message.textContent =
-          VERSION + " — Le SDK publicitaire " +
-          "n'est pas disponible sur cette page. " +
-          "Aucun point ajouté.";
-        return;
+        // La vérification serveur reste possible.
       }
 
       busy = true;
-      watchButton.disabled = true;
-      watchButton.textContent = "Publicité en cours…";
+      verifyButton.disabled = true;
+      verifyButton.textContent = "Vérification en cours…";
 
-      const eventId = createEventId();
+      telegramStatus.textContent =
+        "Diagnostic Telegram : données de session présentes. " +
+        "Validation auprès du serveur en cours…";
 
-      message.textContent =
-        VERSION + " — Demande transmise au SDK.\n" +
-        "Identifiant du test : " + eventId;
+      const controller = new AbortController();
+
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+      }, 15000);
 
       try {
-        const result = await window.show_12322374({
-          ymid: eventId
+        const response = await fetch(AUTH_URL, {
+          method: "POST",
+          mode: "cors",
+          credentials: "omit",
+          cache: "no-store",
+          referrerPolicy: "no-referrer",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            initData: telegram.initData
+          }),
+          signal: controller.signal
         });
 
-        const isObject =
-          result !== null &&
-          typeof result === "object";
-
-        const isValuedImpression =
-          isObject &&
-          result.event_type === "impression" &&
-          result.reward_event_type === "valued";
-
-        if (isValuedImpression) {
-          points += 1;
-
-          message.textContent =
-            VERSION + " — Impression récompensable " +
-            "signalée par le SDK : +1 point local de test.\n" +
-            "Total temporaire : " + points + ".\n" +
-            "Ce point n'est pas convertible en argent.\n" +
-            "Le registre serveur D1 n'est pas consulté " +
-            "par cette page.\n" +
-            "Identifiant envoyé : " + eventId;
-        } else {
-          message.textContent =
-            VERSION + " — Aucune impression valued " +
-            "identifiée dans le résultat du SDK.\n" +
-            "Aucun point local ajouté.\n" +
-            "Identifiant envoyé : " + eventId;
+        if (response.status === 401) {
+          telegramStatus.textContent =
+            "Diagnostic Telegram : session refusée ou expirée. " +
+            "Ferme complètement la Mini App, " +
+            "puis rouvre-la depuis le bot.";
+          return;
         }
 
-        if (isObject) {
-          message.textContent +=
-            "\nType d'événement : " +
-            describe(result.event_type) +
-            "\nType de récompense : " +
-            describe(result.reward_event_type) +
-            "\nIdentifiant renvoyé dans variable2 : " +
-            describe(result.variable2);
-        } else {
-          message.textContent +=
-            "\nDiagnostic SDK : " + describe(result);
+        if (response.status === 403) {
+          telegramStatus.textContent =
+            "Diagnostic Telegram : accès refusé par le serveur " +
+            "(HTTP 403).";
+          return;
         }
-      } catch (error) {
+
+        if (response.status === 503) {
+          telegramStatus.textContent =
+            "Diagnostic Telegram : configuration Telegram " +
+            "incomplète sur le serveur (HTTP 503).";
+          return;
+        }
+
+        if (!response.ok) {
+          telegramStatus.textContent =
+            "Diagnostic Telegram : erreur serveur " +
+            "(HTTP " + response.status + ").";
+          return;
+        }
+
+        let data;
+
+        try {
+          data = await response.json();
+        } catch {
+          telegramStatus.textContent =
+            "Diagnostic Telegram : réponse du serveur illisible.";
+          return;
+        }
+
+        if (
+          data?.ok !== true ||
+          typeof data?.user?.id !== "string" ||
+          !/^[1-9]\d*$/.test(data.user.id)
+        ) {
+          telegramStatus.textContent =
+            "Diagnostic Telegram : réponse du serveur inattendue.";
+          return;
+        }
+
+        sessionValidated = true;
+
+        telegramStatus.textContent =
+          "Diagnostic Telegram : session validée par le serveur.";
+
         message.textContent =
-          VERSION + " — Erreur SDK : " +
-          describe(error) + "\n" +
-          "Aucun point local ajouté.\n" +
-          "Identifiant du test : " + eventId;
+          VERSION + " — Validation Telegram réussie.\n" +
+          "Le serveur a vérifié les données de cette session.\n" +
+          "Aucun point ajouté.\n" +
+          "Le solde D1 n'est pas encore connecté.\n" +
+          "Publicités, paiements et retraits désactivés.";
+      } catch (error) {
+        if (error?.name === "AbortError") {
+          telegramStatus.textContent =
+            "Diagnostic Telegram : délai de réponse dépassé. " +
+            "Tu peux réessayer avec le bouton de vérification.";
+        } else {
+          telegramStatus.textContent =
+            "Diagnostic Telegram : connexion au serveur impossible. " +
+            "Une erreur réseau ou un blocage du navigateur " +
+            "peut empêcher la requête.";
+        }
       } finally {
+        clearTimeout(timeoutId);
         busy = false;
-        watchButton.disabled = false;
-        watchButton.textContent =
-          "Regarder une publicité — point de test";
+        verifyButton.disabled = false;
+        verifyButton.textContent =
+          "Vérifier ma session Telegram";
       }
-    };
+    }
+
+    verifyButton.onclick = verifyTelegramSession;
 
     balanceButton.onclick = () => {
       message.textContent =
-        VERSION + " — Ton solde temporaire : " +
-        points + " point(s) de test, " +
-        "non convertibles en argent.\n" +
-        "Ce compteur est local à la page et disparaît " +
-        "au rechargement.\n" +
-        "Les points enregistrés dans D1 ne sont pas " +
-        "encore affichés ici.";
+        VERSION + " — Points de test\n\n" +
+        "Le solde D1 n'est pas encore connecté à cette page.\n" +
+        "Aucun solde personnel ne peut donc être affiché ici.\n" +
+        "Cette version n'ajoute aucun point.\n\n" +
+        "Dernière vérification de session : " +
+        (sessionValidated
+          ? "réussie."
+          : "non validée.") +
+        "\nAucune valeur monétaire. Aucun retrait.";
     };
 
     rulesButton.onclick = () => {
       message.textContent =
-        VERSION + " — Conditions du test\n\n" +
+        VERSION + " — Conditions du diagnostic\n\n" +
         "Participation facultative.\n" +
-        "Publicités réelles possibles.\n" +
-        "Points locaux sans valeur monétaire, " +
-        "effacés au rechargement.\n" +
-        "Aucun retrait ni gain garanti.\n" +
-        "Aucun achat, téléchargement ou clic sur une offre " +
-        "n'est demandé par cette application.\n" +
-        "Ne clique pas sur les annonces dans le seul but " +
-        "de générer des revenus.\n\n" +
-        "Cette page ne consulte pas le registre D1.\n" +
-        "Les données de session Telegram ne sont pas " +
-        "encore validées côté serveur par cette page.\n" +
-        "Le diagnostic n'affiche pas leur contenu.";
+        "Aucune publicité chargée par cette version.\n" +
+        "Aucun achat, téléchargement ou clic demandé.\n" +
+        "Aucun point ajouté.\n" +
+        "Aucun paiement, retrait ou gain garanti.\n\n" +
+        "Les données de session Telegram sont envoyées " +
+        "au Worker pour vérifier leur authenticité.\n" +
+        "Elles ne sont ni affichées ni enregistrées " +
+        "dans le stockage local par cette page.\n" +
+        "La validation ne crée pas encore de compte D1 " +
+        "et ne lit pas le registre des points.";
     };
 
-    checkTelegram();
+    verifyTelegramSession();
   </script>
 </body>
 </html>
