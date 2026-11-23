@@ -2,62 +2,97 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport"
-        content="width=device-width, initial-scale=1">
-  <title>Bonus Découverte — Test publicitaire</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <script src="https://libtl.com/sdk.js"
-          data-zone="12322374"
-          data-sdk="show_12322374"></script>
+  <title>Bonus Découverte — Diagnostic 2</title>
+
+  <script
+    src="https://libtl.com/sdk.js"
+    data-zone="12322374"
+    data-sdk="show_12322374">
+  </script>
 
   <style>
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       margin: 0;
       padding: 24px 16px;
-      font-family: Arial, sans-serif;
-      background: #f1f5f9;
+      background: #f3f5f9;
       color: #172033;
+      font-family: Arial, sans-serif;
+      line-height: 1.5;
     }
+
     main {
-      max-width: 420px;
-      margin: auto;
+      max-width: 520px;
+      margin: 0 auto;
       padding: 24px;
-      background: white;
-      border-radius: 18px;
+      background: #ffffff;
+      border-radius: 16px;
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
     }
-    h1 { font-size: 26px; }
-    p { line-height: 1.6; }
+
+    h1 {
+      margin-top: 0;
+      font-size: 28px;
+    }
+
+    .version {
+      display: inline-block;
+      padding: 6px 10px;
+      background: #e8eefc;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
     .notice {
       padding: 12px;
-      background: #fff4ce;
-      border-radius: 10px;
+      background: #fff5d6;
+      border-radius: 8px;
     }
+
+    .buttons {
+      display: grid;
+      gap: 12px;
+      margin: 20px 0;
+    }
+
     button {
-      display: block;
       width: 100%;
-      padding: 15px;
-      margin-top: 12px;
+      padding: 14px;
       border: 0;
       border-radius: 10px;
-      background: #1769d2;
-      color: white;
+      background: #2458d3;
+      color: #ffffff;
       font-size: 16px;
       cursor: pointer;
     }
+
+    button.secondary {
+      background: #e8edf5;
+      color: #172033;
+    }
+
     button:disabled {
       opacity: 0.6;
-      cursor: wait;
+      cursor: not-allowed;
     }
+
     #message {
-      min-height: 60px;
-      margin-top: 20px;
+      padding: 14px;
+      background: #eef2f7;
+      border-radius: 10px;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
     }
-    small {
-      display: block;
+
+    footer {
       margin-top: 20px;
-      line-height: 1.5;
-      color: #526075;
+      color: #526078;
+      font-size: 13px;
     }
   </style>
 </head>
@@ -66,6 +101,8 @@
   <main>
     <h1>Bonus Découverte</h1>
 
+    <p class="version">Version diagnostic 2</p>
+
     <p class="notice">
       Test avec publicités réelles possibles.
       Les points de test n'ont aucune valeur monétaire.
@@ -73,54 +110,100 @@
     </p>
 
     <p>
-      Tu peux choisir de regarder une publicité.
-      Un point de test est ajouté uniquement si le SDK
-      signale un événement récompensable.
-      Aucun achat ni clic sur une offre n'est demandé
-      par cette application.
+      La participation est facultative. Aucun achat, téléchargement
+      ni clic sur une offre n'est demandé par cette application.
+      Ne clique pas sur les annonces dans le seul but de générer
+      des revenus.
     </p>
 
-    <button id="watch" type="button">
-      Regarder une publicité — point de test
-    </button>
+    <div class="buttons">
+      <button id="watch" type="button">
+        Regarder une publicité — point de test
+      </button>
 
-    <button id="balance" type="button">
-      Mes points de test
-    </button>
+      <button id="balance" class="secondary" type="button">
+        Mes points de test
+      </button>
 
-    <button id="rules" type="button">
-      Conditions du test
-    </button>
+      <button id="rules" class="secondary" type="button">
+        Conditions du test
+      </button>
+    </div>
 
     <p id="message" role="status" aria-live="polite">
-      Bienvenue ! Ouvre cette page depuis le bot Telegram.
+      Version diagnostic 2 — Bienvenue !
+      Pour vérifier cette version sans publicité,
+      appuie sur « Mes points de test ».
     </p>
 
-    <small>
-      Les points sont temporaires et disparaissent
-      au rechargement. Aucun paiement n'est demandé.
+    <footer>
+      Les points sont temporaires et disparaissent au rechargement.
+      Aucun paiement n'est demandé.
       Ce prototype ne propose pas de récompense en argent.
-    </small>
+    </footer>
   </main>
 
   <script>
+    "use strict";
+
     let points = 0;
     let busy = false;
 
-    const message = document.getElementById("message");
     const watchButton = document.getElementById("watch");
+    const balanceButton = document.getElementById("balance");
+    const rulesButton = document.getElementById("rules");
+    const message = document.getElementById("message");
 
-    if (window.Telegram && window.Telegram.WebApp) {
-      window.Telegram.WebApp.ready();
+    function createEventId() {
+      if (
+        window.crypto &&
+        typeof window.crypto.randomUUID === "function"
+      ) {
+        return window.crypto.randomUUID();
+      }
+
+      return (
+        "test-" +
+        Date.now().toString(36) +
+        "-" +
+        Math.random().toString(36).slice(2)
+      );
+    }
+
+    function describe(value) {
+      if (value === undefined) {
+        return "aucune donnée reçue (undefined)";
+      }
+
+      if (value === null) {
+        return "null";
+      }
+
+      if (value instanceof Error) {
+        return value.name + " : " + value.message;
+      }
+
+      if (typeof value === "string") {
+        return value || "texte vide";
+      }
+
+      try {
+        const text = JSON.stringify(value);
+        return text === undefined ? String(value) : text;
+      } catch {
+        return String(value);
+      }
     }
 
     watchButton.onclick = async () => {
-      if (busy) return;
+      if (busy) {
+        return;
+      }
 
       if (typeof window.show_12322374 !== "function") {
         message.textContent =
-          "Le module publicitaire n'est pas disponible. " +
-          "Vérifie ta connexion et réessaie plus tard. " +
+          "Version diagnostic 2 — Le SDK publicitaire " +
+          "n'est pas disponible sur cette page. " +
           "Aucun point ajouté.";
         return;
       }
@@ -128,43 +211,49 @@
       busy = true;
       watchButton.disabled = true;
       watchButton.textContent = "Publicité en cours…";
-      message.textContent =
-        "Chargement de la publicité. Elle peut être indisponible.";
 
-      const eventId =
-        window.crypto &&
-        typeof window.crypto.randomUUID === "function"
-          ? window.crypto.randomUUID()
-          : "test-" + Date.now() + "-" +
-            Math.random().toString(36).slice(2);
+      const eventId = createEventId();
+
+      message.textContent =
+        "Version diagnostic 2 — Demande transmise au SDK.\n" +
+        "Identifiant du test : " + eventId;
 
       try {
         const result = await window.show_12322374({
           ymid: eventId
         });
 
-        if (result &&
-            result.reward_event_type === "valued") {
+        if (
+          result &&
+          typeof result === "object" &&
+          result.reward_event_type === "valued"
+        ) {
           points += 1;
+
           message.textContent =
+            "Version diagnostic 2 — " +
             "Événement récompensable signalé par le SDK : " +
-            "+1 point de test. Total : " + points +
-            ". Ce point n'est pas convertible en argent.";
-         } else {
+            "+1 point de test.\n" +
+            "Total : " + points + ".\n" +
+            "Ce point n'est pas convertible en argent.\n" +
+            "La réception du postback serveur " +
+            "n'est pas vérifiée par cette page.\n" +
+            "Identifiant du test : " + eventId;
+        } else {
           message.textContent =
-            "Diagnostic SDK : " +
-            (JSON.stringify(result) ?? "aucune donnée reçue") +
-                        " — Aucun point ajouté.";
+            "Version diagnostic 2 — Diagnostic SDK : " +
+            describe(result) + "\n" +
+            "Aucun point ajouté.\n" +
+            "La réception du postback serveur " +
+            "n'est pas vérifiée par cette page.\n" +
+            "Identifiant du test : " + eventId;
         }
       } catch (error) {
-  const detail =
-    error instanceof Error
-      ? error.message
-      : String(error ?? "Erreur sans détail");
-
-  message.textContent =
-    "Diagnostic SDK — erreur : " + detail +
-    " — Aucun point ajouté.";
+        message.textContent =
+          "Version diagnostic 2 — Erreur SDK : " +
+          describe(error) + "\n" +
+          "Aucun point ajouté.\n" +
+          "Identifiant du test : " + eventId;
       } finally {
         busy = false;
         watchButton.disabled = false;
@@ -173,19 +262,27 @@
       }
     };
 
-    document.getElementById("balance").onclick = () => {
+    balanceButton.onclick = () => {
       message.textContent =
-        "Version diagnostic 2 — Ton solde temporaire : " + points +
+        "Version diagnostic 2 — Ton solde temporaire : " +
+        points +
         " point(s) de test, non convertibles en argent.";
     };
 
-    document.getElementById("rules").onclick = () => {
+    rulesButton.onclick = () => {
       message.textContent =
-        "Prototype avec publicités réelles possibles. " +
-        "Participation facultative. Points locaux sans valeur monétaire, " +
-        "effacés au rechargement. Aucun retrait ni gain garanti. " +
+        "Version diagnostic 2 — Conditions du test\n\n" +
+        "Participation facultative.\n" +
+        "Publicités réelles possibles.\n" +
+        "Points locaux sans valeur monétaire, " +
+        "effacés au rechargement.\n" +
+        "Aucun retrait ni gain garanti.\n" +
+        "Aucun achat, téléchargement ou clic sur une offre " +
+        "n'est demandé par cette application.\n" +
         "Ne clique pas sur les annonces dans le seul but " +
-        "de générer des revenus.";
+        "de générer des revenus.\n\n" +
+        "Cette page ne consulte pas la base D1 " +
+        "et ne confirme pas la réception des postbacks.";
     };
   </script>
 </body>
