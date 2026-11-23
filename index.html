@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <title>Bonus Découverte — Diagnostic 4</title>
+  <title>Bonus Découverte — Diagnostic 5</title>
 
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
@@ -79,7 +79,8 @@
     }
 
     #message,
-    #telegram-status {
+    #telegram-status,
+    #balance-status {
       padding: 14px;
       border-radius: 10px;
       white-space: pre-wrap;
@@ -95,6 +96,10 @@
       font-size: 14px;
     }
 
+    #balance-status {
+      background: #e9f5ed;
+    }
+
     footer {
       margin-top: 20px;
       color: #526078;
@@ -107,11 +112,11 @@
   <main>
     <h1>Bonus Découverte</h1>
 
-    <p class="version">Version diagnostic 4</p>
+    <p class="version">Version diagnostic 5</p>
 
     <p class="notice">
-      Vérification de session Telegram uniquement.
-      Les publicités sont désactivées dans cette version.
+      Vérification Telegram et lecture du solde serveur.
+      Les publicités sont désactivées.
       Les points de test n'ont aucune valeur monétaire.
       Aucun retrait disponible.
     </p>
@@ -125,17 +130,21 @@
       Diagnostic Telegram : vérification en cours…
     </p>
 
+    <p id="balance-status" role="status" aria-live="polite">
+      Solde serveur : pas encore consulté.
+    </p>
+
     <div class="buttons">
       <button id="verify" type="button">
         Vérifier ma session Telegram
       </button>
 
-      <button type="button" disabled>
-        Publicités désactivées pendant ce diagnostic
+      <button id="balance" type="button">
+        Mes points de test — serveur
       </button>
 
-      <button id="balance" class="secondary" type="button">
-        Mes points de test
+      <button type="button" disabled>
+        Publicités désactivées pendant ce diagnostic
       </button>
 
       <button id="rules" class="secondary" type="button">
@@ -144,15 +153,16 @@
     </div>
 
     <p id="message" role="status" aria-live="polite">
-      Version diagnostic 4 — Bienvenue !
-      Cette page vérifie la session auprès du serveur.
-      Aucun point n'est ajouté pendant ce contrôle.
+      Version diagnostic 5 — Bienvenue !
+      La session est vérifiée automatiquement.
+      Utilise ensuite « Mes points de test — serveur ».
+      Aucun point n'est ajouté par cette page.
     </p>
 
     <footer>
-      Cette version ne lit pas encore le solde D1.
-      Aucun paiement n'est demandé.
-      Aucun gain ni retrait n'est proposé.
+      Le solde est demandé au serveur et n'est pas calculé
+      à partir d'un compteur local.
+      Aucun paiement, gain en argent ou retrait n'est proposé.
       Les données de session et les secrets ne sont pas affichés.
     </footer>
   </main>
@@ -160,62 +170,54 @@
   <script>
     "use strict";
 
-    const VERSION = "Version diagnostic 4";
+    const VERSION = "Version diagnostic 5";
 
-    const AUTH_URL =
-      "https://bonus-decouverte-api.randriamanjakafernandmilson.workers.dev/auth/telegram";
+    const API_BASE =
+      "https://bonus-decouverte-api.randriamanjakafernandmilson.workers.dev";
 
     const verifyButton = document.getElementById("verify");
     const balanceButton = document.getElementById("balance");
     const rulesButton = document.getElementById("rules");
+
     const message = document.getElementById("message");
     const telegramStatus =
       document.getElementById("telegram-status");
+    const balanceStatus =
+      document.getElementById("balance-status");
 
     let busy = false;
-    let sessionValidated = false;
 
-    async function verifyTelegramSession() {
-      if (busy) {
-        return;
-      }
+    function setBusy(value) {
+      busy = value;
+      verifyButton.disabled = value;
+      balanceButton.disabled = value;
+    }
 
-      sessionValidated = false;
-
+    function getInitData() {
       const telegram = window.Telegram?.WebApp;
 
       if (!telegram) {
-        telegramStatus.textContent =
-          "Diagnostic Telegram : script indisponible. " +
-          "Ferme puis rouvre la Mini App depuis le bot.";
-        return;
+        throw new Error("TELEGRAM_UNAVAILABLE");
       }
 
       if (
         typeof telegram.initData !== "string" ||
         telegram.initData.length === 0
       ) {
-        telegramStatus.textContent =
-          "Diagnostic Telegram : aucune donnée de session reçue. " +
-          "Ouvre cette page avec « Ouvrir la démo » " +
-          "dans le bot Telegram.";
-        return;
+        throw new Error("NO_SESSION");
       }
 
       try {
         telegram.ready();
       } catch {
-        // La vérification serveur reste possible.
+        // La requête serveur peut quand même être tentée.
       }
 
-      busy = true;
-      verifyButton.disabled = true;
-      verifyButton.textContent = "Vérification en cours…";
+      return telegram.initData;
+    }
 
-      telegramStatus.textContent =
-        "Diagnostic Telegram : données de session présentes. " +
-        "Validation auprès du serveur en cours…";
-
+    async function callApi(path) {
+      const initData = getInitData();
       const controller = new AbortController();
 
       const timeoutId = setTimeout(() => {
@@ -223,7 +225,7 @@
       }, 15000);
 
       try {
-        const response = await fetch(AUTH_URL, {
+        const response = await fetch(API_BASE + path, {
           method: "POST",
           mode: "cors",
           credentials: "omit",
@@ -232,39 +234,12 @@
           headers: {
             "Content-Type": "application/json"
           },
-          body: JSON.stringify({
-            initData: telegram.initData
-          }),
+          body: JSON.stringify({ initData }),
           signal: controller.signal
         });
 
-        if (response.status === 401) {
-          telegramStatus.textContent =
-            "Diagnostic Telegram : session refusée ou expirée. " +
-            "Ferme complètement la Mini App, " +
-            "puis rouvre-la depuis le bot.";
-          return;
-        }
-
-        if (response.status === 403) {
-          telegramStatus.textContent =
-            "Diagnostic Telegram : accès refusé par le serveur " +
-            "(HTTP 403).";
-          return;
-        }
-
-        if (response.status === 503) {
-          telegramStatus.textContent =
-            "Diagnostic Telegram : configuration Telegram " +
-            "incomplète sur le serveur (HTTP 503).";
-          return;
-        }
-
         if (!response.ok) {
-          telegramStatus.textContent =
-            "Diagnostic Telegram : erreur serveur " +
-            "(HTTP " + response.status + ").";
-          return;
+          throw new Error("HTTP_" + response.status);
         }
 
         let data;
@@ -272,66 +247,204 @@
         try {
           data = await response.json();
         } catch {
-          telegramStatus.textContent =
-            "Diagnostic Telegram : réponse du serveur illisible.";
-          return;
+          throw new Error("INVALID_RESPONSE");
         }
 
+        if (data?.ok !== true) {
+          throw new Error("INVALID_RESPONSE");
+        }
+
+        return data;
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    }
+
+    function errorMessage(error) {
+      if (error?.name === "AbortError") {
+        return (
+          "Délai de réponse dépassé. " +
+          "Tu peux réessayer."
+        );
+      }
+
+      switch (error?.message) {
+        case "TELEGRAM_UNAVAILABLE":
+          return (
+            "Script Telegram indisponible. " +
+            "Ferme puis rouvre la Mini App depuis le bot."
+          );
+
+        case "NO_SESSION":
+          return (
+            "Aucune donnée de session reçue. " +
+            "Ouvre cette page avec « Ouvrir la démo » " +
+            "dans le bot Telegram."
+          );
+
+        case "HTTP_401":
+          return (
+            "Session refusée ou expirée. " +
+            "Ferme complètement la Mini App, " +
+            "puis rouvre-la depuis le bot."
+          );
+
+        case "HTTP_403":
+          return "Accès refusé par le serveur (HTTP 403).";
+
+        case "HTTP_404":
+          return (
+            "Route introuvable sur le serveur (HTTP 404)."
+          );
+
+        case "HTTP_405":
+          return (
+            "Méthode refusée par le serveur (HTTP 405)."
+          );
+
+        case "HTTP_503":
+          return (
+            "Configuration serveur incomplète (HTTP 503)."
+          );
+
+        case "HTTP_500":
+          return (
+            "Erreur serveur (HTTP 500). " +
+            "La demande n'a pas pu être terminée."
+          );
+
+        case "INVALID_RESPONSE":
+          return "Réponse du serveur inattendue.";
+
+        default:
+          if (/^HTTP_\d+$/.test(error?.message || "")) {
+            return (
+              "Erreur serveur (" +
+              error.message.replace("_", " ") +
+              ")."
+            );
+          }
+
+          return (
+            "Connexion au serveur impossible. " +
+            "Une erreur réseau ou un blocage du navigateur " +
+            "peut empêcher la requête."
+          );
+      }
+    }
+
+    function markSessionError(error) {
+      if (
+        error?.message === "HTTP_401" ||
+        error?.message === "NO_SESSION" ||
+        error?.message === "TELEGRAM_UNAVAILABLE"
+      ) {
+        telegramStatus.textContent =
+          "Diagnostic Telegram : " + errorMessage(error);
+      }
+    }
+
+    async function verifySession() {
+      if (busy) return;
+
+      setBusy(true);
+      verifyButton.textContent = "Vérification en cours…";
+
+      telegramStatus.textContent =
+        "Diagnostic Telegram : validation serveur en cours…";
+
+      // Une nouvelle vérification invalide l'ancien affichage.
+      balanceStatus.textContent =
+        "Solde serveur : à consulter après vérification.";
+
+      try {
+        const data = await callApi("/auth/telegram");
+
         if (
-          data?.ok !== true ||
           typeof data?.user?.id !== "string" ||
           !/^[1-9]\d*$/.test(data.user.id)
         ) {
-          telegramStatus.textContent =
-            "Diagnostic Telegram : réponse du serveur inattendue.";
-          return;
+          throw new Error("INVALID_RESPONSE");
         }
-
-        sessionValidated = true;
 
         telegramStatus.textContent =
           "Diagnostic Telegram : session validée par le serveur.";
 
         message.textContent =
           VERSION + " — Validation Telegram réussie.\n" +
-          "Le serveur a vérifié les données de cette session.\n" +
-          "Aucun point ajouté.\n" +
-          "Le solde D1 n'est pas encore connecté.\n" +
-          "Publicités, paiements et retraits désactivés.";
+          "Appuie sur « Mes points de test — serveur » " +
+          "pour consulter le solde associé à cette session.\n" +
+          "Aucun point ajouté.";
       } catch (error) {
-        if (error?.name === "AbortError") {
-          telegramStatus.textContent =
-            "Diagnostic Telegram : délai de réponse dépassé. " +
-            "Tu peux réessayer avec le bouton de vérification.";
-        } else {
-          telegramStatus.textContent =
-            "Diagnostic Telegram : connexion au serveur impossible. " +
-            "Une erreur réseau ou un blocage du navigateur " +
-            "peut empêcher la requête.";
-        }
+        telegramStatus.textContent =
+          "Diagnostic Telegram : " + errorMessage(error);
+
+        message.textContent =
+          VERSION + " — Vérification non terminée.\n" +
+          "Aucun point ajouté.";
       } finally {
-        clearTimeout(timeoutId);
-        busy = false;
-        verifyButton.disabled = false;
+        setBusy(false);
         verifyButton.textContent =
           "Vérifier ma session Telegram";
       }
     }
 
-    verifyButton.onclick = verifyTelegramSession;
+    async function loadBalance() {
+      if (busy) return;
 
-    balanceButton.onclick = () => {
-      message.textContent =
-        VERSION + " — Points de test\n\n" +
-        "Le solde D1 n'est pas encore connecté à cette page.\n" +
-        "Aucun solde personnel ne peut donc être affiché ici.\n" +
-        "Cette version n'ajoute aucun point.\n\n" +
-        "Dernière vérification de session : " +
-        (sessionValidated
-          ? "réussie."
-          : "non validée.") +
-        "\nAucune valeur monétaire. Aucun retrait.";
-    };
+      setBusy(true);
+      balanceButton.textContent = "Lecture du solde…";
+
+      // Ne pas conserver un ancien montant en cas d'échec.
+      balanceStatus.textContent =
+        "Solde serveur : lecture en cours…";
+
+      try {
+        const data = await callApi("/balance");
+
+        if (
+          !Number.isSafeInteger(data.points) ||
+          data.points < 0 ||
+          data.source !== "D1"
+        ) {
+          throw new Error("INVALID_RESPONSE");
+        }
+
+        telegramStatus.textContent =
+          "Diagnostic Telegram : session validée par le serveur.";
+
+        balanceStatus.textContent =
+          "Solde serveur D1 : " +
+          data.points +
+          " point(s) de test.\n" +
+          "Sans valeur monétaire. Aucun retrait.";
+
+        message.textContent =
+          VERSION + " — Lecture du solde réussie.\n" +
+          "Ce montant correspond aux points associés " +
+          "à ton identifiant Telegram validé par le serveur.\n" +
+          "Les anciens points sans compte ne sont pas inclus.\n" +
+          "Aucun point ajouté par cette consultation.";
+      } catch (error) {
+        balanceStatus.textContent =
+          "Solde serveur : indisponible.\n" +
+          errorMessage(error);
+
+        markSessionError(error);
+
+        message.textContent =
+          VERSION + " — Le solde n'a pas pu être lu.\n" +
+          "Un échec de lecture ne signifie pas un solde nul.\n" +
+          "Aucun point ajouté.";
+      } finally {
+        setBusy(false);
+        balanceButton.textContent =
+          "Mes points de test — serveur";
+      }
+    }
+
+    verifyButton.onclick = verifySession;
+    balanceButton.onclick = loadBalance;
 
     rulesButton.onclick = () => {
       message.textContent =
@@ -339,17 +452,18 @@
         "Participation facultative.\n" +
         "Aucune publicité chargée par cette version.\n" +
         "Aucun achat, téléchargement ou clic demandé.\n" +
-        "Aucun point ajouté.\n" +
+        "Aucun point ajouté par cette page.\n" +
         "Aucun paiement, retrait ou gain garanti.\n\n" +
-        "Les données de session Telegram sont envoyées " +
-        "au Worker pour vérifier leur authenticité.\n" +
-        "Elles ne sont ni affichées ni enregistrées " +
-        "dans le stockage local par cette page.\n" +
-        "La validation ne crée pas encore de compte D1 " +
-        "et ne lit pas le registre des points.";
+        "Chaque demande de solde transmet les données " +
+        "de session Telegram au Worker pour validation.\n" +
+        "Le serveur lit uniquement les points associés " +
+        "à l'identifiant Telegram validé.\n" +
+        "Les anciens points sans compte restent séparés.\n" +
+        "Cette page n'affiche pas les données de session " +
+        "et ne les enregistre pas dans le stockage local.";
     };
 
-    verifyTelegramSession();
+    verifySession();
   </script>
 </body>
 </html>
