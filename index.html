@@ -157,9 +157,14 @@
                         " — Aucun point ajouté.";
         }
       } catch (error) {
-        message.textContent =
-          "La publicité est indisponible ou n'a pas pu être affichée. " +
-          "Aucun point ajouté. Réessaie plus tard.";
+  const detail =
+    error instanceof Error
+      ? error.message
+      : String(error ?? "Erreur sans détail");
+
+  message.textContent =
+    "Diagnostic SDK — erreur : " + detail +
+    " — Aucun point ajouté.";
       } finally {
         busy = false;
         watchButton.disabled = false;
