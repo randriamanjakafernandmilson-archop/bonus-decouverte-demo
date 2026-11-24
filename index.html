@@ -4,9 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport"
         content="width=device-width, initial-scale=1, viewport-fit=cover">
-
   <meta name="theme-color" content="#101827">
-  <title>Bonus Découverte — Quiz</title>
+
+  <title>Bonus Découverte — Quiz avec suivi</title>
 
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
@@ -33,9 +33,7 @@
       margin: auto;
     }
 
-    header {
-      padding: 12px 0 22px;
-    }
+    header { padding: 12px 0 22px; }
 
     h1 {
       margin: 0;
@@ -49,9 +47,7 @@
       font-size: 23px;
     }
 
-    .subtitle, .muted {
-      color: #526078;
-    }
+    .muted { color: #526078; }
 
     .card {
       padding: 24px;
@@ -90,7 +86,9 @@
       cursor: not-allowed;
     }
 
-    button:focus-visible, summary:focus-visible {
+    button:focus-visible,
+    summary:focus-visible,
+    textarea:focus-visible {
       outline: 3px solid #e09c14;
       outline-offset: 3px;
     }
@@ -125,14 +123,14 @@
       accent-color: #2458d3;
     }
 
-    #connection, #feedback {
+    #connection,
+    #feedback,
+    #ad-status {
       white-space: pre-wrap;
       overflow-wrap: anywhere;
     }
 
-    #feedback {
-      padding-top: 12px;
-    }
+    #feedback { padding-top: 12px; }
 
     .score {
       font-size: 48px;
@@ -154,6 +152,25 @@
       font-weight: 600;
     }
 
+    #ad-status {
+      padding: 12px;
+      border-radius: 10px;
+      background: #fff5d6;
+    }
+
+    textarea {
+      display: block;
+      width: 100%;
+      min-height: 230px;
+      padding: 12px;
+      border: 1px solid #bdc8da;
+      border-radius: 10px;
+      background: #f7f9fc;
+      color: #172033;
+      font: 12px/1.6 monospace;
+      resize: vertical;
+    }
+
     footer {
       padding: 4px 4px 20px;
       font-size: 12px;
@@ -161,10 +178,6 @@
     }
 
     [hidden] { display: none !important; }
-
-    @media (prefers-reduced-motion: no-preference) {
-      button { transition: background .15s ease; }
-    }
   </style>
 </head>
 
@@ -172,26 +185,26 @@
   <main>
     <header>
       <h1>Bonus Découverte</h1>
-      <div class="subtitle">Un petit quiz pour apprendre chaque jour.</div>
+      <div class="muted">Quiz — version avec suivi technique S1</div>
     </header>
 
     <section id="welcome" class="card" aria-labelledby="welcome-title">
-      <span class="tag">Quiz gratuit · Culture générale</span>
+      <span class="tag">Quiz gratuit · 8 questions</span>
       <h2 id="welcome-title">Prêt à relever le défi ?</h2>
 
       <p>
-        Réponds à 8 questions et découvre une explication après
-        chaque réponse.
+        Réponds aux questions et découvre une explication
+        après chaque réponse.
       </p>
 
       <p class="muted">
-        L’application peut afficher des publicités pendant son utilisation.
-        Elles financent le service. Aucun achat ni clic publicitaire
+        Des publicités peuvent apparaître pendant l’utilisation.
+        Aucun achat, téléchargement ou clic publicitaire
         n’est nécessaire pour jouer.
       </p>
 
       <p id="connection" role="status" aria-live="polite">
-        Vérification de la connexion Telegram…
+        Vérification Telegram…
       </p>
 
       <button id="start" type="button" disabled>
@@ -205,6 +218,7 @@
 
     <section id="game" class="card" aria-labelledby="question" hidden>
       <div id="counter" class="muted"></div>
+
       <progress id="progress" value="0" max="8"
                 aria-label="Progression du quiz"></progress>
 
@@ -219,54 +233,72 @@
     </section>
 
     <section id="result" class="card" aria-labelledby="result-title" hidden>
-      <span class="tag">Partie terminée</span>
       <h2 id="result-title" tabindex="-1">Ton résultat</h2>
       <p id="final-score" class="score"></p>
       <p id="result-message"></p>
 
       <p class="muted">
-        Ce score sert uniquement au jeu. Il ne représente pas de l’argent
-        et ne donne droit à aucun retrait.
+        Le score n’a aucune valeur monétaire.
+        Aucun retrait n’est proposé.
       </p>
 
       <button id="restart" type="button">Rejouer</button>
+    </section>
+
+    <section class="card" aria-labelledby="tracking-title">
+      <h2 id="tracking-title">Suivi technique S1</h2>
+
+      <p id="ad-status" role="status" aria-live="polite">
+        Publicité : non initialisée.
+      </p>
+
+      <p class="muted">
+        Ce journal suit le chargement et la configuration du SDK.
+        Il ne compte pas les impressions et ne mesure aucun revenu.
+      </p>
+
+      <label for="technical-log">Journal à copier après ton essai :</label>
+      <textarea id="technical-log" readonly spellcheck="false"></textarea>
+
+      <button id="select-log" class="secondary" type="button">
+        Sélectionner le journal
+      </button>
+
+      <p class="muted">
+        Aucun identifiant Telegram, donnée de session ou secret
+        n’est ajouté à ce journal par notre code.
+      </p>
     </section>
 
     <details>
       <summary>Fonctionnement et confidentialité</summary>
 
       <p>
-        Bonus Découverte propose un quiz gratuit.
-        Certaines publicités peuvent apparaître automatiquement.
-        Aucune rémunération n’est proposée aux joueurs.
+        Les données de connexion Telegram sont transmises au Worker
+        pour validation. Cette page ne les affiche pas et ne les
+        enregistre pas dans le stockage local.
       </p>
 
       <p>
-        Les données de connexion fournies par Telegram sont transmises
-        à notre serveur pour vérifier la session.
-        Cette page ne les affiche pas et ne les enregistre pas
-        dans le stockage local.
+        Le score et le journal restent dans la mémoire de cette page.
+        Ils sont perdus au rechargement et ne sont pas envoyés
+        à notre serveur.
       </p>
 
       <p>
-        Le score de cette version reste dans la mémoire de la page.
-        Il disparaît lorsque la page est rechargée.
+        Après le lancement du quiz, le SDK publicitaire Monetag
+        est chargé. Il peut traiter des données techniques
+        nécessaires à la diffusion et à la mesure des publicités.
       </p>
 
       <p>
-        Après le lancement du quiz, le SDK publicitaire tiers Monetag
-        est chargé. Il peut traiter des données techniques nécessaires
-        à la diffusion et à la mesure des publicités.
-      </p>
-
-      <p>
-        Ne clique sur une publicité que si son offre t’intéresse.
-        Aucun clic n’améliore ton score.
+        Aucun paiement ni récompense monétaire n’est proposé.
+        Aucun clic publicitaire n’améliore le score.
       </p>
     </details>
 
     <footer>
-      Bonus Découverte · Première version du quiz.<br>
+      Bonus Découverte · Suivi S1.<br>
       Pas de dépôt, pas de récompense monétaire, pas de retrait.
     </footer>
   </main>
@@ -294,43 +326,43 @@
         q: "Quel nombre continue la suite : 2, 4, 8, 16… ?",
         a: ["18", "24", "30", "32"],
         correct: 3,
-        info: "Chaque nombre est multiplié par 2 : après 16 vient 32."
+        info: "Chaque nombre est multiplié par 2."
       },
       {
         q: "Combien de minutes y a-t-il dans deux heures ?",
         a: ["60", "90", "120", "200"],
         correct: 2,
-        info: "Une heure contient 60 minutes : deux heures en contiennent 120."
+        info: "Deux fois 60 minutes donnent 120 minutes."
       },
       {
         q: "Quel mot est un verbe à l’infinitif ?",
         a: ["Maison", "Rapide", "Courir", "Demain"],
         correct: 2,
-        info: "« Courir » est un verbe présenté à l’infinitif."
+        info: "« Courir » est un verbe à l’infinitif."
       },
       {
         q: "Quel est le pluriel de « journal » ?",
         a: ["Journals", "Journaux", "Journales", "Journal"],
         correct: 1,
-        info: "Le pluriel de « journal » est « journaux »."
+        info: "Le pluriel est « journaux »."
       },
       {
         q: "Combien de côtés possède un triangle ?",
         a: ["3", "4", "5", "6"],
         correct: 0,
-        info: "Un triangle possède trois côtés et trois sommets."
+        info: "Un triangle possède trois côtés."
       },
       {
-        q: "Quelle couleur obtient-on en mélangeant de la peinture bleue et jaune ?",
+        q: "Quelle couleur donne habituellement le mélange de peintures bleue et jaune ?",
         a: ["Rouge", "Violet", "Orange", "Vert"],
         correct: 3,
-        info: "Dans le mélange habituel de peintures, le bleu et le jaune donnent du vert."
+        info: "Le mélange habituel donne du vert."
       },
       {
-        q: "Un article coûte 100 unités. Une réduction de 20 % donne quel prix ?",
+        q: "Un prix de 100 baisse de 20 %. Quel est le nouveau prix ?",
         a: ["20", "80", "90", "120"],
         correct: 1,
-        info: "20 % de 100 font 20. Le prix réduit est donc 100 − 20 = 80."
+        info: "100 − 20 = 80."
       },
       {
         q: "Quel nombre est pair ?",
@@ -339,20 +371,22 @@
         info: "28 est divisible par 2 sans reste."
       },
       {
-        q: "Quel mot signifie le contraire de « lent » ?",
+        q: "Quel mot est le contraire de « lent » ?",
         a: ["Rapide", "Calme", "Lourd", "Petit"],
         correct: 0,
         info: "« Rapide » est le contraire de « lent »."
       },
       {
         q: "Combien font 1 000 mètres en kilomètres ?",
-        a: ["10 kilomètres", "100 kilomètres", "0,1 kilomètre", "1 kilomètre"],
+        a: ["10", "100", "0,1", "1"],
         correct: 3,
-        info: "Un kilomètre correspond à 1 000 mètres."
+        info: "1 000 mètres correspondent à 1 kilomètre."
       }
     ];
 
     const $ = (id) => document.getElementById(id);
+    const startedAt = performance.now();
+    const logs = [];
 
     let authenticated = false;
     let checking = false;
@@ -361,6 +395,49 @@
     let index = 0;
     let score = 0;
     let answered = false;
+
+    function log(message) {
+      const elapsed = ((performance.now() - startedAt) / 1000).toFixed(1);
+      logs.push("+" + elapsed + " s | " + message);
+
+      if (logs.length > 80) logs.shift();
+
+      $("technical-log").value = logs.join("\n");
+      $("technical-log").scrollTop = $("technical-log").scrollHeight;
+    }
+
+    function adStatus(message) {
+      $("ad-status").textContent = message;
+      log(message);
+    }
+
+    function safeError(error) {
+      let value = "";
+
+      try {
+        if (typeof error === "string") {
+          value = error;
+        } else {
+          value = [error?.name, error?.code, error?.message]
+            .filter((part) =>
+              typeof part === "string" || typeof part === "number"
+            )
+            .join(" | ");
+        }
+      } catch {
+        return "Erreur sans détail lisible.";
+      }
+
+      if (!value) return "Erreur sans détail lisible.";
+
+      return value
+        .replace(/https?:\/\/[^\s"'<>]+/gi, "[URL masquée]")
+        .replace(/\b(initData|hash|token|secret|signature)\b\s*[:=]\s*\S+/gi,
+          "$1=[masqué]")
+        .replace(/\b[a-f0-9]{32,}\b/gi, "[valeur masquée]")
+        .replace(/\b\d{7,}\b/g, "[nombre masqué]")
+        .slice(0, 240);
+    }
 
     function shuffle(items) {
       const copy = [...items];
@@ -380,10 +457,11 @@
       authenticated = false;
       $("start").disabled = true;
       $("retry").hidden = true;
-      $("connection").textContent = "Vérification de la connexion Telegram…";
+      $("connection").textContent = "Vérification Telegram…";
+      log("Vérification Telegram demandée.");
 
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 15000);
+      const timer = setTimeout(() => controller.abort(), 15000);
 
       try {
         const telegram = window.Telegram?.WebApp;
@@ -419,27 +497,29 @@
         }
 
         authenticated = true;
+        $("start").disabled = false;
         $("connection").textContent =
           "Connexion Telegram vérifiée. Tu peux commencer.";
-        $("start").disabled = false;
+        log("Session validée par le Worker. Identité non journalisée.");
       } catch (error) {
         if (error.message === "NO_SESSION") {
           $("connection").textContent =
-            "Ouvre cette page depuis le bouton de la Mini App dans Telegram.";
+            "Ouvre cette page comme Mini App depuis Telegram.";
         } else if (error.message === "HTTP_401") {
           $("connection").textContent =
-            "Session expirée ou refusée. Ferme la Mini App puis rouvre-la depuis Telegram.";
+            "Session refusée ou expirée. Ferme puis rouvre la Mini App.";
         } else if (error.name === "AbortError") {
           $("connection").textContent =
-            "Le serveur met trop de temps à répondre. Réessaie.";
+            "Délai dépassé. Tu peux réessayer.";
         } else {
           $("connection").textContent =
             "Connexion non vérifiée. Vérifie ton réseau puis réessaie.";
         }
 
+        log("Validation non terminée : " + safeError(error));
         $("retry").hidden = false;
       } finally {
-        clearTimeout(timeout);
+        clearTimeout(timer);
         checking = false;
       }
     }
@@ -448,33 +528,99 @@
       if (adsAttempted || !authenticated) return;
       adsAttempted = true;
 
+      adStatus("SDK : chargement demandé.");
+
       const script = document.createElement("script");
       script.src = "https://libtl.com/sdk.js";
       script.async = true;
       script.dataset.zone = "12322374";
       script.dataset.sdk = "show_12322374";
 
-      script.onload = async () => {
-        try {
-          if (typeof window.show_12322374 !== "function") return;
+      let scriptFinished = false;
 
-          await window.show_12322374({
-            type: "inApp",
-            inAppSettings: {
-              frequency: 2,
-              capping: 10 / 60,
-              interval: 120,
-              timeout: 30,
-              everyPage: false
-            }
-          });
-        } catch {
-          // Une indisponibilité publicitaire ne bloque pas le quiz.
+      const loadWatchdog = setTimeout(() => {
+        if (!scriptFinished) {
+          adStatus(
+            "SDK : aucun événement de chargement après 20 secondes. " +
+            "Cause non déterminée ; aucune relance automatique."
+          );
         }
-      };
+      }, 20000);
 
       script.onerror = () => {
-        // Aucun rechargement automatique ou contournement du blocage.
+        scriptFinished = true;
+        clearTimeout(loadWatchdog);
+
+        adStatus(
+          "SDK : échec de chargement du script. " +
+          "Le navigateur ne fournit pas ici la cause précise."
+        );
+      };
+
+      script.onload = async () => {
+        scriptFinished = true;
+        clearTimeout(loadWatchdog);
+        log("SDK : événement de chargement reçu.");
+
+        if (typeof window.show_12322374 !== "function") {
+          adStatus("SDK : fonction show_12322374 absente.");
+          return;
+        }
+
+        log("SDK : fonction show_12322374 disponible.");
+
+        const settings = {
+          frequency: 2,
+          capping: 10 / 60,
+          interval: 120,
+          timeout: 30,
+          everyPage: false
+        };
+
+        log(
+          "Configuration : In-App ; maximum 2 annonces / 10 minutes ; " +
+          "intervalle 120 s ; délai initial 30 s ; everyPage=false."
+        );
+
+        let settled = false;
+
+        const setupWatchdog = setTimeout(() => {
+          if (!settled) {
+            adStatus(
+              "Configuration : appel toujours sans réponse après 15 secondes. " +
+              "Cela ne prouve pas un échec."
+            );
+          }
+        }, 15000);
+
+        try {
+          adStatus("Configuration : appel du SDK en cours.");
+
+          const returned = window.show_12322374({
+            type: "inApp",
+            inAppSettings: settings
+          });
+
+          if (!returned || typeof returned.then !== "function") {
+            adStatus(
+              "Configuration : retour inattendu, aucune Promise reçue. " +
+              "État de diffusion inconnu."
+            );
+            return;
+          }
+
+          await returned;
+
+          adStatus(
+            "Configuration : Promise résolue. " +
+            "Programmation configurée ; affichage et revenu non confirmés."
+          );
+        } catch (error) {
+          adStatus("Configuration : erreur — " + safeError(error));
+        } finally {
+          settled = true;
+          clearTimeout(setupWatchdog);
+        }
       };
 
       document.head.appendChild(script);
@@ -499,6 +645,7 @@
       $("result").hidden = true;
       $("game").hidden = false;
 
+      log("Partie commencée.");
       renderQuestion();
       enableAdvertising();
     }
@@ -509,6 +656,7 @@
 
       $("counter").textContent =
         "Question " + (index + 1) + " sur " + questions.length;
+
       $("progress").max = questions.length;
       $("progress").value = index;
       $("question").textContent = item.question;
@@ -578,19 +726,41 @@
 
       $("result-message").textContent =
         score === questions.length
-          ? "Sans faute ! Bravo pour cette partie."
+          ? "Sans faute ! Bravo."
           : score >= questions.length / 2
-            ? "Bien joué ! Une nouvelle partie pour progresser ?"
-            : "Chaque partie est une occasion d’apprendre. Continue !";
+            ? "Bien joué !"
+            : "Chaque partie est une occasion d’apprendre.";
 
+      log("Partie terminée.");
       $("result-title").focus();
     }
+
+    document.addEventListener("visibilitychange", () => {
+      if (adsAttempted) {
+        log(
+          "Visibilité de la page : " + document.visibilityState +
+          " ; ce signal ne prouve pas un affichage publicitaire."
+        );
+      }
+    });
 
     $("start").addEventListener("click", startQuiz);
     $("retry").addEventListener("click", verifySession);
     $("next").addEventListener("click", nextQuestion);
     $("restart").addEventListener("click", startQuiz);
 
+    $("select-log").addEventListener("click", () => {
+      $("technical-log").focus();
+      $("technical-log").select();
+      $("technical-log").setSelectionRange(
+        0,
+        $("technical-log").value.length
+      );
+    });
+
+    log("Version S1 ouverte.");
+    log("Date UTC : " + new Date().toISOString());
+    log("Journal local ; aucun suivi réseau détaillé ni compteur d’impressions.");
     verifySession();
   </script>
 </body>
