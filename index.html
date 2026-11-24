@@ -2,239 +2,405 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1, viewport-fit=cover">
 
-  <title>Bonus Découverte — Diagnostic 5</title>
+  <meta name="theme-color" content="#101827">
+  <title>Bonus Découverte — Quiz</title>
 
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
   <style>
-    * {
-      box-sizing: border-box;
+    * { box-sizing: border-box; }
+
+    :root {
+      color-scheme: light;
+      font-family: Arial, sans-serif;
+      background: #eef2f8;
+      color: #172033;
     }
 
     body {
       margin: 0;
       padding: 24px 16px;
-      background: #f3f5f9;
-      color: #172033;
-      font-family: Arial, sans-serif;
-      line-height: 1.5;
+      padding-bottom: max(24px, env(safe-area-inset-bottom));
+      line-height: 1.6;
     }
 
     main {
-      max-width: 540px;
-      margin: 0 auto;
-      padding: 24px;
-      background: #ffffff;
-      border-radius: 16px;
-      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
+      width: 100%;
+      max-width: 600px;
+      margin: auto;
+    }
+
+    header {
+      padding: 12px 0 22px;
     }
 
     h1 {
-      margin-top: 0;
-      font-size: 28px;
+      margin: 0;
+      font-size: 29px;
+      letter-spacing: -1px;
     }
 
-    .version {
+    h2 {
+      margin-top: 0;
+      line-height: 1.4;
+      font-size: 23px;
+    }
+
+    .subtitle, .muted {
+      color: #526078;
+    }
+
+    .card {
+      padding: 24px;
+      margin-bottom: 18px;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 8px 28px #1720330a;
+    }
+
+    .tag {
       display: inline-block;
-      margin-top: 0;
-      padding: 6px 10px;
       background: #e8eefc;
-      border-radius: 8px;
-      font-size: 14px;
-    }
-
-    .notice {
-      padding: 12px;
-      background: #fff5d6;
-      border-radius: 8px;
-    }
-
-    .buttons {
-      display: grid;
-      gap: 12px;
-      margin: 20px 0;
+      color: #214db5;
+      border-radius: 30px;
+      padding: 5px 12px;
+      margin-bottom: 16px;
+      font-size: 13px;
     }
 
     button {
       width: 100%;
-      padding: 14px;
-      border: 0;
-      border-radius: 10px;
+      padding: 15px;
+      margin-top: 12px;
+      border: 2px solid transparent;
+      border-radius: 12px;
       background: #2458d3;
-      color: #ffffff;
-      font-size: 16px;
+      color: white;
+      font: inherit;
+      font-weight: 600;
       cursor: pointer;
-    }
-
-    button.secondary {
-      background: #e8edf5;
-      color: #172033;
+      touch-action: manipulation;
     }
 
     button:disabled {
-      opacity: 0.6;
+      opacity: .6;
       cursor: not-allowed;
     }
 
-    #message,
-    #telegram-status,
-    #balance-status {
-      padding: 14px;
-      border-radius: 10px;
+    button:focus-visible, summary:focus-visible {
+      outline: 3px solid #e09c14;
+      outline-offset: 3px;
+    }
+
+    button.secondary {
+      background: #e9eef7;
+      color: #172033;
+    }
+
+    button.answer {
+      text-align: left;
+      background: #f0f3f9;
+      color: #172033;
+    }
+
+    button.correct {
+      background: #dff2e6;
+      border-color: #27804b;
+      opacity: 1;
+    }
+
+    button.wrong {
+      background: #fce8e8;
+      border-color: #bd3b3b;
+      opacity: 1;
+    }
+
+    progress {
+      width: 100%;
+      height: 10px;
+      margin: 8px 0 22px;
+      accent-color: #2458d3;
+    }
+
+    #connection, #feedback {
       white-space: pre-wrap;
       overflow-wrap: anywhere;
     }
 
-    #message {
-      background: #eef2f7;
+    #feedback {
+      padding-top: 12px;
     }
 
-    #telegram-status {
-      background: #e8eefc;
+    .score {
+      font-size: 48px;
+      font-weight: 700;
+      color: #2458d3;
+      margin: 12px 0;
+    }
+
+    details {
+      margin-bottom: 16px;
+      padding: 18px;
+      background: white;
+      border-radius: 14px;
       font-size: 14px;
     }
 
-    #balance-status {
-      background: #e9f5ed;
+    summary {
+      cursor: pointer;
+      font-weight: 600;
     }
 
     footer {
-      margin-top: 20px;
+      padding: 4px 4px 20px;
+      font-size: 12px;
       color: #526078;
-      font-size: 13px;
+    }
+
+    [hidden] { display: none !important; }
+
+    @media (prefers-reduced-motion: no-preference) {
+      button { transition: background .15s ease; }
     }
   </style>
 </head>
 
 <body>
   <main>
-    <h1>Bonus Découverte</h1>
+    <header>
+      <h1>Bonus Découverte</h1>
+      <div class="subtitle">Un petit quiz pour apprendre chaque jour.</div>
+    </header>
 
-    <p class="version">Version diagnostic 5</p>
+    <section id="welcome" class="card" aria-labelledby="welcome-title">
+      <span class="tag">Quiz gratuit · Culture générale</span>
+      <h2 id="welcome-title">Prêt à relever le défi ?</h2>
 
-    <p class="notice">
-      Vérification Telegram et lecture du solde serveur.
-      Les publicités sont désactivées.
-      Les points de test n'ont aucune valeur monétaire.
-      Aucun retrait disponible.
-    </p>
+      <p>
+        Réponds à 8 questions et découvre une explication après
+        chaque réponse.
+      </p>
 
-    <p>
-      Aucun achat, téléchargement ou clic publicitaire
-      n'est nécessaire pour ce contrôle.
-    </p>
+      <p class="muted">
+        L’application peut afficher des publicités pendant son utilisation.
+        Elles financent le service. Aucun achat ni clic publicitaire
+        n’est nécessaire pour jouer.
+      </p>
 
-    <p id="telegram-status" role="status" aria-live="polite">
-      Diagnostic Telegram : vérification en cours…
-    </p>
+      <p id="connection" role="status" aria-live="polite">
+        Vérification de la connexion Telegram…
+      </p>
 
-    <p id="balance-status" role="status" aria-live="polite">
-      Solde serveur : pas encore consulté.
-    </p>
-
-    <div class="buttons">
-      <button id="verify" type="button">
-        Vérifier ma session Telegram
+      <button id="start" type="button" disabled>
+        Commencer le quiz
       </button>
 
-      <button id="balance" type="button">
-        Mes points de test — serveur
+      <button id="retry" class="secondary" type="button" hidden>
+        Réessayer la connexion
       </button>
+    </section>
 
-      <button type="button" disabled>
-        Publicités désactivées pendant ce diagnostic
+    <section id="game" class="card" aria-labelledby="question" hidden>
+      <div id="counter" class="muted"></div>
+      <progress id="progress" value="0" max="8"
+                aria-label="Progression du quiz"></progress>
+
+      <h2 id="question" tabindex="-1"></h2>
+      <div id="answers"></div>
+
+      <p id="feedback" role="status" aria-live="polite"></p>
+
+      <button id="next" type="button" hidden>
+        Question suivante
       </button>
+    </section>
 
-      <button id="rules" class="secondary" type="button">
-        Conditions du test
-      </button>
-    </div>
+    <section id="result" class="card" aria-labelledby="result-title" hidden>
+      <span class="tag">Partie terminée</span>
+      <h2 id="result-title" tabindex="-1">Ton résultat</h2>
+      <p id="final-score" class="score"></p>
+      <p id="result-message"></p>
 
-    <p id="message" role="status" aria-live="polite">
-      Version diagnostic 5 — Bienvenue !
-      La session est vérifiée automatiquement.
-      Utilise ensuite « Mes points de test — serveur ».
-      Aucun point n'est ajouté par cette page.
-    </p>
+      <p class="muted">
+        Ce score sert uniquement au jeu. Il ne représente pas de l’argent
+        et ne donne droit à aucun retrait.
+      </p>
+
+      <button id="restart" type="button">Rejouer</button>
+    </section>
+
+    <details>
+      <summary>Fonctionnement et confidentialité</summary>
+
+      <p>
+        Bonus Découverte propose un quiz gratuit.
+        Certaines publicités peuvent apparaître automatiquement.
+        Aucune rémunération n’est proposée aux joueurs.
+      </p>
+
+      <p>
+        Les données de connexion fournies par Telegram sont transmises
+        à notre serveur pour vérifier la session.
+        Cette page ne les affiche pas et ne les enregistre pas
+        dans le stockage local.
+      </p>
+
+      <p>
+        Le score de cette version reste dans la mémoire de la page.
+        Il disparaît lorsque la page est rechargée.
+      </p>
+
+      <p>
+        Après le lancement du quiz, le SDK publicitaire tiers Monetag
+        est chargé. Il peut traiter des données techniques nécessaires
+        à la diffusion et à la mesure des publicités.
+      </p>
+
+      <p>
+        Ne clique sur une publicité que si son offre t’intéresse.
+        Aucun clic n’améliore ton score.
+      </p>
+    </details>
 
     <footer>
-      Le solde est demandé au serveur et n'est pas calculé
-      à partir d'un compteur local.
-      Aucun paiement, gain en argent ou retrait n'est proposé.
-      Les données de session et les secrets ne sont pas affichés.
+      Bonus Découverte · Première version du quiz.<br>
+      Pas de dépôt, pas de récompense monétaire, pas de retrait.
     </footer>
   </main>
 
   <script>
     "use strict";
 
-    const VERSION = "Version diagnostic 5";
-
     const API_BASE =
       "https://bonus-decouverte-api.randriamanjakafernandmilson.workers.dev";
 
-    const verifyButton = document.getElementById("verify");
-    const balanceButton = document.getElementById("balance");
-    const rulesButton = document.getElementById("rules");
+    const BANK = [
+      {
+        q: "Combien font 12 × 8 ?",
+        a: ["96", "88", "108", "86"],
+        correct: 0,
+        info: "12 × 8 = 96."
+      },
+      {
+        q: "Quelle fraction correspond à 50 % ?",
+        a: ["Un quart", "Une moitié", "Un tiers", "Un dixième"],
+        correct: 1,
+        info: "50 % signifie 50 sur 100, soit une moitié."
+      },
+      {
+        q: "Quel nombre continue la suite : 2, 4, 8, 16… ?",
+        a: ["18", "24", "30", "32"],
+        correct: 3,
+        info: "Chaque nombre est multiplié par 2 : après 16 vient 32."
+      },
+      {
+        q: "Combien de minutes y a-t-il dans deux heures ?",
+        a: ["60", "90", "120", "200"],
+        correct: 2,
+        info: "Une heure contient 60 minutes : deux heures en contiennent 120."
+      },
+      {
+        q: "Quel mot est un verbe à l’infinitif ?",
+        a: ["Maison", "Rapide", "Courir", "Demain"],
+        correct: 2,
+        info: "« Courir » est un verbe présenté à l’infinitif."
+      },
+      {
+        q: "Quel est le pluriel de « journal » ?",
+        a: ["Journals", "Journaux", "Journales", "Journal"],
+        correct: 1,
+        info: "Le pluriel de « journal » est « journaux »."
+      },
+      {
+        q: "Combien de côtés possède un triangle ?",
+        a: ["3", "4", "5", "6"],
+        correct: 0,
+        info: "Un triangle possède trois côtés et trois sommets."
+      },
+      {
+        q: "Quelle couleur obtient-on en mélangeant de la peinture bleue et jaune ?",
+        a: ["Rouge", "Violet", "Orange", "Vert"],
+        correct: 3,
+        info: "Dans le mélange habituel de peintures, le bleu et le jaune donnent du vert."
+      },
+      {
+        q: "Un article coûte 100 unités. Une réduction de 20 % donne quel prix ?",
+        a: ["20", "80", "90", "120"],
+        correct: 1,
+        info: "20 % de 100 font 20. Le prix réduit est donc 100 − 20 = 80."
+      },
+      {
+        q: "Quel nombre est pair ?",
+        a: ["17", "21", "28", "35"],
+        correct: 2,
+        info: "28 est divisible par 2 sans reste."
+      },
+      {
+        q: "Quel mot signifie le contraire de « lent » ?",
+        a: ["Rapide", "Calme", "Lourd", "Petit"],
+        correct: 0,
+        info: "« Rapide » est le contraire de « lent »."
+      },
+      {
+        q: "Combien font 1 000 mètres en kilomètres ?",
+        a: ["10 kilomètres", "100 kilomètres", "0,1 kilomètre", "1 kilomètre"],
+        correct: 3,
+        info: "Un kilomètre correspond à 1 000 mètres."
+      }
+    ];
 
-    const message = document.getElementById("message");
-    const telegramStatus =
-      document.getElementById("telegram-status");
-    const balanceStatus =
-      document.getElementById("balance-status");
+    const $ = (id) => document.getElementById(id);
 
-    let busy = false;
+    let authenticated = false;
+    let checking = false;
+    let adsAttempted = false;
+    let questions = [];
+    let index = 0;
+    let score = 0;
+    let answered = false;
 
-    function setBusy(value) {
-      busy = value;
-      verifyButton.disabled = value;
-      balanceButton.disabled = value;
+    function shuffle(items) {
+      const copy = [...items];
+
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+
+      return copy;
     }
 
-    function getInitData() {
-      const telegram = window.Telegram?.WebApp;
+    async function verifySession() {
+      if (checking) return;
 
-      if (!telegram) {
-        throw new Error("TELEGRAM_UNAVAILABLE");
-      }
+      checking = true;
+      authenticated = false;
+      $("start").disabled = true;
+      $("retry").hidden = true;
+      $("connection").textContent = "Vérification de la connexion Telegram…";
 
-      if (
-        typeof telegram.initData !== "string" ||
-        telegram.initData.length === 0
-      ) {
-        throw new Error("NO_SESSION");
-      }
-
-      try {
-        telegram.ready();
-      } catch {
-        // La requête serveur peut quand même être tentée.
-      }
-
-      return telegram.initData;
-    }
-
-    async function callApi(path) {
-      const initData = getInitData();
       const controller = new AbortController();
-
-      const timeoutId = setTimeout(() => {
-        controller.abort();
-      }, 15000);
+      const timeout = setTimeout(() => controller.abort(), 15000);
 
       try {
-        const response = await fetch(API_BASE + path, {
+        const telegram = window.Telegram?.WebApp;
+
+        if (!telegram?.initData) {
+          throw new Error("NO_SESSION");
+        }
+
+        telegram.ready();
+
+        const response = await fetch(API_BASE + "/auth/telegram", {
           method: "POST",
-          mode: "cors",
           credentials: "omit",
           cache: "no-store",
           referrerPolicy: "no-referrer",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({ initData }),
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ initData: telegram.initData }),
           signal: controller.signal
         });
 
@@ -242,226 +408,188 @@
           throw new Error("HTTP_" + response.status);
         }
 
-        let data;
-
-        try {
-          data = await response.json();
-        } catch {
-          throw new Error("INVALID_RESPONSE");
-        }
-
-        if (data?.ok !== true) {
-          throw new Error("INVALID_RESPONSE");
-        }
-
-        return data;
-      } finally {
-        clearTimeout(timeoutId);
-      }
-    }
-
-    function errorMessage(error) {
-      if (error?.name === "AbortError") {
-        return (
-          "Délai de réponse dépassé. " +
-          "Tu peux réessayer."
-        );
-      }
-
-      switch (error?.message) {
-        case "TELEGRAM_UNAVAILABLE":
-          return (
-            "Script Telegram indisponible. " +
-            "Ferme puis rouvre la Mini App depuis le bot."
-          );
-
-        case "NO_SESSION":
-          return (
-            "Aucune donnée de session reçue. " +
-            "Ouvre cette page avec « Ouvrir la démo » " +
-            "dans le bot Telegram."
-          );
-
-        case "HTTP_401":
-          return (
-            "Session refusée ou expirée. " +
-            "Ferme complètement la Mini App, " +
-            "puis rouvre-la depuis le bot."
-          );
-
-        case "HTTP_403":
-          return "Accès refusé par le serveur (HTTP 403).";
-
-        case "HTTP_404":
-          return (
-            "Route introuvable sur le serveur (HTTP 404)."
-          );
-
-        case "HTTP_405":
-          return (
-            "Méthode refusée par le serveur (HTTP 405)."
-          );
-
-        case "HTTP_503":
-          return (
-            "Configuration serveur incomplète (HTTP 503)."
-          );
-
-        case "HTTP_500":
-          return (
-            "Erreur serveur (HTTP 500). " +
-            "La demande n'a pas pu être terminée."
-          );
-
-        case "INVALID_RESPONSE":
-          return "Réponse du serveur inattendue.";
-
-        default:
-          if (/^HTTP_\d+$/.test(error?.message || "")) {
-            return (
-              "Erreur serveur (" +
-              error.message.replace("_", " ") +
-              ")."
-            );
-          }
-
-          return (
-            "Connexion au serveur impossible. " +
-            "Une erreur réseau ou un blocage du navigateur " +
-            "peut empêcher la requête."
-          );
-      }
-    }
-
-    function markSessionError(error) {
-      if (
-        error?.message === "HTTP_401" ||
-        error?.message === "NO_SESSION" ||
-        error?.message === "TELEGRAM_UNAVAILABLE"
-      ) {
-        telegramStatus.textContent =
-          "Diagnostic Telegram : " + errorMessage(error);
-      }
-    }
-
-    async function verifySession() {
-      if (busy) return;
-
-      setBusy(true);
-      verifyButton.textContent = "Vérification en cours…";
-
-      telegramStatus.textContent =
-        "Diagnostic Telegram : validation serveur en cours…";
-
-      // Une nouvelle vérification invalide l'ancien affichage.
-      balanceStatus.textContent =
-        "Solde serveur : à consulter après vérification.";
-
-      try {
-        const data = await callApi("/auth/telegram");
+        const data = await response.json();
 
         if (
+          data?.ok !== true ||
           typeof data?.user?.id !== "string" ||
           !/^[1-9]\d*$/.test(data.user.id)
         ) {
           throw new Error("INVALID_RESPONSE");
         }
 
-        telegramStatus.textContent =
-          "Diagnostic Telegram : session validée par le serveur.";
-
-        message.textContent =
-          VERSION + " — Validation Telegram réussie.\n" +
-          "Appuie sur « Mes points de test — serveur » " +
-          "pour consulter le solde associé à cette session.\n" +
-          "Aucun point ajouté.";
+        authenticated = true;
+        $("connection").textContent =
+          "Connexion Telegram vérifiée. Tu peux commencer.";
+        $("start").disabled = false;
       } catch (error) {
-        telegramStatus.textContent =
-          "Diagnostic Telegram : " + errorMessage(error);
-
-        message.textContent =
-          VERSION + " — Vérification non terminée.\n" +
-          "Aucun point ajouté.";
-      } finally {
-        setBusy(false);
-        verifyButton.textContent =
-          "Vérifier ma session Telegram";
-      }
-    }
-
-    async function loadBalance() {
-      if (busy) return;
-
-      setBusy(true);
-      balanceButton.textContent = "Lecture du solde…";
-
-      // Ne pas conserver un ancien montant en cas d'échec.
-      balanceStatus.textContent =
-        "Solde serveur : lecture en cours…";
-
-      try {
-        const data = await callApi("/balance");
-
-        if (
-          !Number.isSafeInteger(data.points) ||
-          data.points < 0 ||
-          data.source !== "D1"
-        ) {
-          throw new Error("INVALID_RESPONSE");
+        if (error.message === "NO_SESSION") {
+          $("connection").textContent =
+            "Ouvre cette page depuis le bouton de la Mini App dans Telegram.";
+        } else if (error.message === "HTTP_401") {
+          $("connection").textContent =
+            "Session expirée ou refusée. Ferme la Mini App puis rouvre-la depuis Telegram.";
+        } else if (error.name === "AbortError") {
+          $("connection").textContent =
+            "Le serveur met trop de temps à répondre. Réessaie.";
+        } else {
+          $("connection").textContent =
+            "Connexion non vérifiée. Vérifie ton réseau puis réessaie.";
         }
 
-        telegramStatus.textContent =
-          "Diagnostic Telegram : session validée par le serveur.";
-
-        balanceStatus.textContent =
-          "Solde serveur D1 : " +
-          data.points +
-          " point(s) de test.\n" +
-          "Sans valeur monétaire. Aucun retrait.";
-
-        message.textContent =
-          VERSION + " — Lecture du solde réussie.\n" +
-          "Ce montant correspond aux points associés " +
-          "à ton identifiant Telegram validé par le serveur.\n" +
-          "Les anciens points sans compte ne sont pas inclus.\n" +
-          "Aucun point ajouté par cette consultation.";
-      } catch (error) {
-        balanceStatus.textContent =
-          "Solde serveur : indisponible.\n" +
-          errorMessage(error);
-
-        markSessionError(error);
-
-        message.textContent =
-          VERSION + " — Le solde n'a pas pu être lu.\n" +
-          "Un échec de lecture ne signifie pas un solde nul.\n" +
-          "Aucun point ajouté.";
+        $("retry").hidden = false;
       } finally {
-        setBusy(false);
-        balanceButton.textContent =
-          "Mes points de test — serveur";
+        clearTimeout(timeout);
+        checking = false;
       }
     }
 
-    verifyButton.onclick = verifySession;
-    balanceButton.onclick = loadBalance;
+    function enableAdvertising() {
+      if (adsAttempted || !authenticated) return;
+      adsAttempted = true;
 
-    rulesButton.onclick = () => {
-      message.textContent =
-        VERSION + " — Conditions du diagnostic\n\n" +
-        "Participation facultative.\n" +
-        "Aucune publicité chargée par cette version.\n" +
-        "Aucun achat, téléchargement ou clic demandé.\n" +
-        "Aucun point ajouté par cette page.\n" +
-        "Aucun paiement, retrait ou gain garanti.\n\n" +
-        "Chaque demande de solde transmet les données " +
-        "de session Telegram au Worker pour validation.\n" +
-        "Le serveur lit uniquement les points associés " +
-        "à l'identifiant Telegram validé.\n" +
-        "Les anciens points sans compte restent séparés.\n" +
-        "Cette page n'affiche pas les données de session " +
-        "et ne les enregistre pas dans le stockage local.";
-    };
+      const script = document.createElement("script");
+      script.src = "https://libtl.com/sdk.js";
+      script.async = true;
+      script.dataset.zone = "12322374";
+      script.dataset.sdk = "show_12322374";
+
+      script.onload = async () => {
+        try {
+          if (typeof window.show_12322374 !== "function") return;
+
+          await window.show_12322374({
+            type: "inApp",
+            inAppSettings: {
+              frequency: 2,
+              capping: 10 / 60,
+              interval: 120,
+              timeout: 30,
+              everyPage: false
+            }
+          });
+        } catch {
+          // Une indisponibilité publicitaire ne bloque pas le quiz.
+        }
+      };
+
+      script.onerror = () => {
+        // Aucun rechargement automatique ou contournement du blocage.
+      };
+
+      document.head.appendChild(script);
+    }
+
+    function startQuiz() {
+      if (!authenticated) return;
+
+      questions = shuffle(BANK).slice(0, 8).map((entry) => ({
+        question: entry.q,
+        explanation: entry.info,
+        answers: shuffle(entry.a.map((text, originalIndex) => ({
+          text,
+          correct: originalIndex === entry.correct
+        })))
+      }));
+
+      index = 0;
+      score = 0;
+
+      $("welcome").hidden = true;
+      $("result").hidden = true;
+      $("game").hidden = false;
+
+      renderQuestion();
+      enableAdvertising();
+    }
+
+    function renderQuestion() {
+      answered = false;
+      const item = questions[index];
+
+      $("counter").textContent =
+        "Question " + (index + 1) + " sur " + questions.length;
+      $("progress").max = questions.length;
+      $("progress").value = index;
+      $("question").textContent = item.question;
+      $("answers").replaceChildren();
+      $("feedback").textContent = "";
+      $("next").hidden = true;
+
+      item.answers.forEach((answer, answerIndex) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "answer";
+        button.textContent = answer.text;
+        button.addEventListener("click", () => chooseAnswer(answerIndex));
+        $("answers").appendChild(button);
+      });
+
+      $("question").focus();
+    }
+
+    function chooseAnswer(selectedIndex) {
+      if (answered) return;
+      answered = true;
+
+      const item = questions[index];
+      const selected = item.answers[selectedIndex];
+      const correct = item.answers.find((answer) => answer.correct);
+
+      if (selected.correct) score++;
+
+      [...$("answers").children].forEach((button, answerIndex) => {
+        button.disabled = true;
+
+        if (item.answers[answerIndex].correct) {
+          button.classList.add("correct");
+        } else if (answerIndex === selectedIndex) {
+          button.classList.add("wrong");
+        }
+      });
+
+      $("feedback").textContent =
+        (selected.correct
+          ? "Bonne réponse ! "
+          : "La bonne réponse était : " + correct.text + ". ") +
+        item.explanation;
+
+      $("progress").value = index + 1;
+      $("next").textContent =
+        index === questions.length - 1
+          ? "Voir mon résultat"
+          : "Question suivante";
+      $("next").hidden = false;
+    }
+
+    function nextQuestion() {
+      if (!answered) return;
+
+      index++;
+
+      if (index < questions.length) {
+        renderQuestion();
+        return;
+      }
+
+      $("game").hidden = true;
+      $("result").hidden = false;
+      $("final-score").textContent = score + " / " + questions.length;
+
+      $("result-message").textContent =
+        score === questions.length
+          ? "Sans faute ! Bravo pour cette partie."
+          : score >= questions.length / 2
+            ? "Bien joué ! Une nouvelle partie pour progresser ?"
+            : "Chaque partie est une occasion d’apprendre. Continue !";
+
+      $("result-title").focus();
+    }
+
+    $("start").addEventListener("click", startQuiz);
+    $("retry").addEventListener("click", verifySession);
+    $("next").addEventListener("click", nextQuestion);
+    $("restart").addEventListener("click", startQuiz);
 
     verifySession();
   </script>
